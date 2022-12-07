@@ -10,9 +10,13 @@ import InfoService from "./services/InfoService";
 import { getSubDir } from "./utils";
 import ConfigService from "./services/ConfigService";
 import { v4 as uuidv4 } from "uuid";
+import { createClient } from "redis";
 
 const pdfjsLib = require("pdfjs-dist");
-
+const redisclient = createClient({
+    url: "redis://Dngks:HeyAWS@19#@drawcluster.d3md1b.ng.0001.euw2.cache.amazonaws.com:6379",
+});
+redisclient.on("error", (err) => console.log("Redis Client Error", err));
 const urlParams = new URLSearchParams(window.location.search);
 let whiteboardId = urlParams.get("whiteboardid");
 const randomid = urlParams.get("randomid");
@@ -171,6 +175,12 @@ function initWhiteboard() {
         // request whiteboard from server
         $.get(subdir + "/api/loadwhiteboard", { wid: whiteboardId, at: accessToken }).done(
             function (data) {
+                 await redisclient.connect();
+                const value = await redisclient.get('whiteboard');
+                const data = data.concat(value)
+                await client.set('whiteboard', 'data');
+
+                await client.disconnect();
                 console.log(data);
                 whiteboard.loadData(data);
                 if (copyfromwid && data.length == 0) {
